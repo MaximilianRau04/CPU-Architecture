@@ -81,9 +81,6 @@ docs/                          Typst documentation + architecture diagrams
 └── typst/                     Typst sources for the documentation
 
 tests/                         System test (C#)
-
-assmebler/                     The assembler lives in `assembler/` and provides a PicoBlaze-style toolchain for assembling programs for this CPU. See    
-                               `assembler/README.md` for usage and build instructions.
 ```
 
 ## Documentation
