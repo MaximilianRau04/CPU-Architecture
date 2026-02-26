@@ -1,0 +1,25 @@
+%YAML 1.2
+---
+# http://www.sublimetext.com/docs/3/syntax.html
+name: PicoASM
+file_extensions:
+  - asm
+scope: source.picoasm
+variables:
+  register: '\b[rRsS][0-9A-F]\b'
+  instruction: '\b(NOP|INPUT|OUTPUT|ADD|ADDCY|SUB|SUBCY|AND|OR|XOR|COMPARE|TEST|JUMP|LOAD|RL|RR|SL0|SL1|SLA|SLX|SR0|SR1|SRA|SRX|Z|NZ|C|NC)\b'
+  comment: ';.*$'
+contexts:
+  main:
+    - match: '{{comment}}'
+      scope: comment.line.semicolon.picoasm
+    - match: '{{instruction}}'
+      scope: keyword.instruction.picoasm
+    - match: '{{register}}'
+      scope: variable.register.picoasm
+    - match: '0x[0-9A-F]+'
+      scope: constant.numeric.hex.picoasm
+    - match: '\b\d+\b'
+      scope: constant.numeric.decimal.picoasm
+    - match: '\s+:'
+      scope: punctuation.section.label.picoasm
