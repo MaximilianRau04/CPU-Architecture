@@ -1,7 +1,7 @@
-# RO2 Processor -- Group 2
+# CPU Architecture
 
-8-bit PicoBlaze-style processor written in VHDL.
-The full assignment spec is in `docs/3_RO2-Aufgabe.pdf`.
+Note: This repository is a university assignment. The complete assignment specification is in `docs/assignment.pdf`.
+It is an 8-bit PicoBlaze-style processor written in VHDL, with a 2-stage pipeline and a compact instruction set modeled after the PicoBlaze/KCPSM family.
 
 ## Architecture
 
@@ -45,11 +45,16 @@ IO and memory control signals are delayed one cycle so they align with execute-s
 ## Project structure
 
 ```
+assembler/
+├── src/                       C# PicoBlaze-style assembler
+├── lib/                       Shared assembler libraries
+└── tests/                     Assembler test suite
+
 src/
 ├── cpu.vhd                    Top-level CPU
 ├── types.vhd                  Core types (ro2_word, ro2_address, ...)
 ├── pkg/io_types_pkg.vhd       IO port array type
-├── ControlUnit/               Decoder, PC, branch logic, control_unit wrapper
+├── ControlUnit/               Instruction decoder, program counter, branch logic, control_unit wrapper
 ├── DataPath/                  ALU, register file, datapath pipeline
 ├── HazardDetection/           RAW hazard detector
 ├── IO_Unit/                   256-port IO bridge
@@ -64,29 +69,27 @@ sim/
 ├── cpu_flush_tb.vhd           No-delay-slot verification
 ├── cpu_stress_tb.vhd          Cold start, Fibonacci, reset mid-execution, input noise
 ├── cpu_wrapper_tb.vhd         Minimal waveform-analysis wrapper
-├── ControlUnit/               Unit tests for decoder, PC, branch logic, control_unit
+├── ControlUnit/               Unit tests for instruction decoder, program counter, branch logic, control_unit
 ├── DataPath/                  ALU, regfile, datapath, datapath flush tests
 ├── HazardDetection/           Hazard detector edge cases
 ├── IO_Unit/                   IO read/write sweep, isolation, boundary, simultaneous access
 └── MemoryUnit/                Scratchpad RAM read/write, write protection, debug port
 
 docs/                          Typst documentation + architecture diagrams
-tests/                       System test (C#)
+├── assignment.pdf             Full assignment specification
+├── documentation.pdf          Compiled documentation
+└── typst/                     Typst sources for the documentation
+
+tests/                         System test (C#)
+
+assmebler/                     The assembler lives in `assembler/` and provides a PicoBlaze-style toolchain for assembling programs for this CPU. See    
+                               `assembler/README.md` for usage and build instructions.
 ```
-
-## Getting started (Vivado)
-
-1. Open Vivado
-2. Open the Tcl Console (bottom left)
-3. `cd` to the project directory
-4. Run `source project.tcl` -- creates the project, adds all sources and simulation files
-
-## Running tests
-
-Each testbench uses a VHDL configuration to bind a custom `InstructionMemory` architecture (test-specific ROM program) into the CPU. Run any `*_tb` entity or its `*_cfg` configuration in the simulator.
-
-CI runs automatically via GitHub Actions (`.github/workflows/vhdl-test.yml`).
 
 ## Documentation
 
-Full documentation in `docs/`.
+Full documentation in `docs/`, including the compiled PDF (`docs/documentation.pdf`), Typst sources in `docs/typst/`, and ISA/reference material in `docs/syntax/`. An architecture diagram is stored in `docs/architecture.drawio`.
+
+## Assembler
+
+The assembler is in `assembler/` and provides a PicoBlaze-style toolchain for assembling programs for this CPU. See `assembler/README.md` for usage and build instructions.
