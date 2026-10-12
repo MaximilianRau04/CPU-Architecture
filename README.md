@@ -5,28 +5,7 @@ It is an 8-bit PicoBlaze-style processor written in VHDL, with a 2-stage pipelin
 
 ## Architecture
 
-```
- ┌────────────┐ inst  ┌───────────────┐ alu_op,regs ┌────────────┐
- │ Instruction│──────▶│  Control Unit │────────────▶│  Datapath  │
- │   Memory   │       │  (decoder +   │             │ (regfile + │
- │   (ROM)    │◀──────│  PC + branch) │◀────────────│    ALU)    │
- └────────────┘  PC   └───────┬───────┘  carry,zero └─────┬──────┘
-                              │                      addr, │ ▲ data
-                         ctrl │ stall  ┌───────────┐  data │ │
-                              │  ┌────▶│  Hazard   │◀──────┘ │
-                              │  │     │ Detector  │         │
-                              ▼  │     └───────────┘         │
-                        ┌────────┴──┐               ┌────────┴───┐
-                        │  IO/Mem   │               │ Scratchpad │
-                        │ Pipeline  │               │ RAM(256x8) │
-                        │ (1c delay)│               └────────────┘
-                        └─────┬─────┘
-                              │
-                        ┌─────┴──────┐
-                        │  IO Unit   │
-                        │ (256 ports)│
-                        └────────────┘
-```
+![Top-level block diagram](images/top-level.svg)
 
 **Pipeline:** 2 stages -- Fetch/Decode and Execute/Writeback.
 IO and memory control signals are delayed one cycle so they align with execute-stage data.
