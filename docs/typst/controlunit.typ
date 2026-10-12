@@ -52,7 +52,7 @@ The opcode is decoded with a `case` statement. Each branch sets only the signals
 - `COMPARE` reuses `ALU_SUB` but with `reg_write = '0'` -- only updates flags.
 - `TEST` uses `ALU_TEST` with `reg_write = '0'` -- computes `sX AND sY/kk` for the Z flag, and sets C to the odd parity of the AND result.
 - `COMPARECY` uses `ALU_COMPARECY` with `reg_write = '0'` -- like `SUBCY` but flags-only. Chains the zero flag via `z_i`: `Z = (result = 0) AND z_i`, enabling multi-byte comparisons.
-- `TESTCY` uses `ALU_TESTCY` with `reg_write = '0'` -- like `TEST` but chains both carry and zero: `C = parity(result) OR c_i`, `Z = (result = 0) AND z_i`.
+- `TESTCY` uses `ALU_TESTCY` with `reg_write = '0'` -- like `TEST` but chains both carry and zero: `C = parity(result) XOR c_i`, `Z = (result = 0) AND z_i`.
 
 *Data transfer* (`LOAD`): Uses `ALU_PASS_B` to pass the source (register or immediate) through the ALU to the destination register. Sets `reads_reg_a = '0'` because sX is only written, not read -- this avoids unnecessary pipeline stalls.
 

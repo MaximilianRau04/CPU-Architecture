@@ -251,7 +251,9 @@ begin
         expect(x"F0", x"0F", '0', '0', ALU_TESTCY, x"00", '0', '0'); -- zero result, z_i=0 -> z=0
         expect(x"F0", x"0F", '1', '1', ALU_TESTCY, x"00", '1', '1'); -- zero, c_i=1 -> c=1, z_i=1 -> z=1
         expect(x"AA", x"55", '1', '0', ALU_TESTCY, x"00", '1', '0'); -- zero, c_i=1 -> c=1, z_i=0 -> z=0
-        expect(x"FF", x"FF", '1', '0', ALU_TESTCY, x"FF", '1', '0'); -- even parity OR c_i=1 -> c=1
+        expect(x"FF", x"FF", '1', '0', ALU_TESTCY, x"FF", '1', '0'); -- even parity XOR c_i=1 -> c=1
+        expect(x"FF", x"01", '1', '0', ALU_TESTCY, x"01", '0', '0'); -- odd parity XOR c_i=1 -> c=0
+        expect(x"07", x"07", '1', '0', ALU_TESTCY, x"07", '0', '0'); -- odd parity XOR c_i=1 -> c=0
 
         -- NOP (result always zero)
         expect(x"FF", x"FF", '0', '0', ALU_NOP, x"00", '0', '1');

@@ -219,7 +219,7 @@ begin
     use_data_in_s <= io_rd_s or mem_read_s;
 
     -- Bus interface
-    port_id      <= address_out_s when io_wr_delayed = '1' else (others => '0');
+    port_id      <= address_out_s when io_wr_delayed = '1' or io_rd_delayed = '1' else (others => '0');
     out_port     <= data_out_s when io_wr_delayed = '1' else (others => '0');
     write_strobe <= io_wr_delayed;
     read_strobe  <= io_rd_delayed;

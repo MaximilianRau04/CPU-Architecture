@@ -143,11 +143,11 @@ begin
                 end if;
                 propagate_z := true;
 
-            -- TESTCY: like TEST but parity OR'd with c_i, zero uses z_i
+            -- TESTCY: like TEST but parity XOR'd with c_i (multi-byte parity), zero uses z_i
             when ALU_TESTCY =>
                 r := a_i and b_i;
                 c := (r(7) xor r(6) xor r(5) xor r(4)
-                      xor r(3) xor r(2) xor r(1) xor r(0)) or c_i;
+                      xor r(3) xor r(2) xor r(1) xor r(0)) xor c_i;
                 if r = x"00" and z_i = '1' then
                     z := '1';
                 end if;

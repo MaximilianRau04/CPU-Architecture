@@ -73,7 +73,20 @@
 --  64: OUTPUT sF, 0x06      canary, must NOT execute
 --  65: NOP
 --  66: OUTPUT s3, 0x0A      port 10 = 0x22
---  67: JUMP 67
+--  67: LOAD sA, 0x00
+--  68: LOAD sB, 0x01
+--  69: SUB sA, sB           carry=1
+--  70: LOAD sC, 0x07
+--  71: TESTCY sC, 0x01      AND=0x01, parity odd XOR c_i=1 -> carry=0
+--  72: JNC 76               taken, flush 73
+--  73: OUTPUT sF, 0x06      canary, must NOT execute
+--  74: NOP
+--  75: NOP
+--  76: OUTPUT sC, 0x0B      port 11 = 0x07
+--  77: JUMP 77
+--
+-- Also checks that port_id carries the port address while read_strobe
+-- is high (INPUT s4, 0x05 -> port_id = 0x05).
 --
 -- Author: Mahdi Bazzoun
 ----------------------------------------------------------------------------------
@@ -94,23 +107,29 @@ architecture sim of cpu_instruction_tb is
     signal reset     : std_logic := '0';
     signal in_ports  : port_array := (others => (others => '0'));
     signal out_ports : port_array;
+    signal port_id     : std_logic_vector(7 downto 0);
+    signal read_strobe : std_logic;
 
     component cpu is
         Port (
-            clk       : in  std_logic;
-            reset     : in  std_logic;
-            in_ports  : in  port_array;
-            out_ports : out port_array
+            clk         : in  std_logic;
+            reset       : in  std_logic;
+            in_ports    : in  port_array;
+            out_ports   : out port_array;
+            port_id     : out std_logic_vector(7 downto 0);
+            read_strobe : out std_logic
         );
     end component;
 
 begin
 
     uut: cpu port map (
-        clk       => clk,
-        reset     => reset,
-        in_ports  => in_ports,
-        out_ports => out_ports
+        clk         => clk,
+        reset       => reset,
+        in_ports    => in_ports,
+        out_ports   => out_ports,
+        port_id     => port_id,
+        read_strobe => read_strobe
     );
 
     clk_process: process
@@ -135,6 +154,8 @@ begin
         variable saw_p8 : boolean := false;
         variable saw_p9 : boolean := false;
         variable saw_p10: boolean := false;
+        variable saw_p11: boolean := false;
+        variable saw_rd : boolean := false;
         constant MAX_CYCLES : integer := 250;
     begin
         in_ports(5) <= x"AB";  -- INPUT s4 reads from in_ports(5)
@@ -151,6 +172,14 @@ begin
             assert out_ports(6) /= x"EE"
                 report "FAIL: canary 0xEE on port 6, flushed instruction executed"
                 severity failure;
+
+            -- port_id must be valid during INPUT (only INPUT reads port 0x05)
+            if read_strobe = '1' then
+                saw_rd := true;
+                assert port_id = x"05"
+                    report "FAIL: port_id not 0x05 while read_strobe is high"
+                    severity failure;
+            end if;
 
             -- NOP
             if out_ports(0) = x"42" and not saw_p0 then
@@ -212,8 +241,14 @@ begin
                 report "COMPARECY z_i=1: port 10 = 0x22" severity note;
             end if;
 
+            -- TESTCY parity chain (odd parity XOR c_i=1 -> carry=0)
+            if out_ports(11) = x"07" and not saw_p11 then
+                saw_p11 := true;
+                report "TESTCY parity XOR: port 11 = 0x07" severity note;
+            end if;
+
             if saw_p0 and saw_p1 and saw_p2 and saw_p3 and saw_p4 and saw_p5
-               and saw_p7 and saw_p8 and saw_p9 and saw_p10 then
+               and saw_p7 and saw_p8 and saw_p9 and saw_p10 and saw_p11 and saw_rd then
                 report "instruction tests passed" severity note;
                 wait;
             end if;
@@ -229,6 +264,8 @@ begin
         assert saw_p8 report "TIMEOUT: port 8 never 0xF0 (TESTCY zero)" severity failure;
         assert saw_p9 report "TIMEOUT: port 9 never 0x01 (COMPARECY z_i=0)" severity failure;
         assert saw_p10 report "TIMEOUT: port 10 never 0x22 (COMPARECY z_i=1)" severity failure;
+        assert saw_p11 report "TIMEOUT: port 11 never 0x07 (TESTCY parity XOR)" severity failure;
+        assert saw_rd report "TIMEOUT: read_strobe never asserted" severity failure;
         wait;
     end process;
 
@@ -328,7 +365,19 @@ architecture InstructionTest of InstructionMemory is
         64 => "011001111100000110",  -- OUTPUT sF, 0x06 (canary, flushed)
         65 => "000000000000000000",  -- NOP
         66 => "011001001100001010",  -- OUTPUT s3, 0x0A
-        67 => "110000000001000011",  -- JUMP 67
+
+        -- TESTCY parity chain (odd parity XOR c_i=1 => carry=0)
+        67 => "010101101000000000",  -- LOAD sA, 0x00
+        68 => "010101101100000001",  -- LOAD sB, 0x01
+        69 => "000110101010110000",  -- SUB sA, sB (carry=1, zero=0)
+        70 => "010101110000000111",  -- LOAD sC, 0x07
+        71 => "101101110000000001",  -- TESTCY sC, 0x01 (parity odd, c_i=1 -> carry=0)
+        72 => "110100000001001100",  -- JNC 76 (taken)
+        73 => "011001111100000110",  -- OUTPUT sF, 0x06 (canary, flushed)
+        74 => "000000000000000000",  -- NOP
+        75 => "000000000000000000",  -- NOP
+        76 => "011001110000001011",  -- OUTPUT sC, 0x0B
+        77 => "110000000001001101",  -- JUMP 77
 
         others => (others => '0')
     );
