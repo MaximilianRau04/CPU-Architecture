@@ -24,7 +24,7 @@ internal struct MachineCodeGenerator() : IAstVisitor
         switch (statement)
         {
             case Statements.Label(var name, var isPrivate):
-                var address = (byte)(_instructions.Count);
+                var address = _instructions.Count;
                 if (!isPrivate)
                     _toplevelScope.Add(name, CurrentScope = new(address) { Parent = _toplevelScope });
                 else
@@ -37,8 +37,9 @@ internal struct MachineCodeGenerator() : IAstVisitor
                 break;
 
             case Statements.Halt:
+                // The CPU has no halt opcode, so HALT is an unconditional jump to itself
                 _instructionStr.Add("Halt");
-                _instructions.Add(uint.MaxValue);
+                _instructions.Add(((uint)PicoOps.Jump << 12) | ((uint)_instructions.Count & 0xFFF));
                 break;
 
             case Statements.OpReg(var operationId, var register):
@@ -85,9 +86,9 @@ internal struct MachineCodeGenerator() : IAstVisitor
         _jumps.Clear();
     }
 
-    sealed class Scope(byte address) : Dictionary<string, Scope>
+    sealed class Scope(int address) : Dictionary<string, Scope>
     {
-        public byte Address { get; } = address;
+        public int Address { get; } = address;
 
         public required Scope? Parent { get; init; }
     }
@@ -127,10 +128,10 @@ internal struct MachineCodeGenerator() : IAstVisitor
             packed(buffer) = 0;
         }
 
-        if (i != count)
+        if (count % 4 != 0)
             stream.Write(buffer[..9]);
 
-        stream.FlushAsync();
+        stream.Flush();
 
         static ref UInt128 packed(Span<byte> buffer) => ref Unsafe.As<byte, UInt128>(ref MemoryMarshal.GetReference(buffer));
     }

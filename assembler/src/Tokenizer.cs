@@ -150,9 +150,19 @@ internal ref struct Tokenizer(ReadOnlySpan<char> buffer) : ITokenizer
                 visitor.Visit(ref this, new Tokens.Keyword(PicoOps.Compare));
                 return true;
 
+            case "comparecy":
+            case "COMPARECY":
+                visitor.Visit(ref this, new Tokens.Keyword(PicoOps.CompareCarry));
+                return true;
+
             case "test":
             case "TEST":
                 visitor.Visit(ref this, new Tokens.Keyword(PicoOps.Test));
+                return true;
+
+            case "testcy":
+            case "TESTCY":
+                visitor.Visit(ref this, new Tokens.Keyword(PicoOps.TestCarry));
                 return true;
 
             case "jump":

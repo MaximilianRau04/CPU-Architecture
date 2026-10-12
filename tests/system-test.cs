@@ -7,17 +7,17 @@ using System.Runtime.CompilerServices;
 
 class Tests
 {
-    public static IEnumerable<byte> Registers => Enumerable.Range(0, 0xF).Select(static i => (byte)i);
-    public static IEnumerable<byte> Ports => Enumerable.Range(0, 0xF).Select(static i => (byte)i);
+    public static IEnumerable<byte> Registers => Enumerable.Range(0, 0x10).Select(static i => (byte)i);
+    public static IEnumerable<byte> Ports => Enumerable.Range(0, 0x10).Select(static i => (byte)i);
     public static IEnumerable<(byte reg, byte port)> RegisterXPort => from reg in Registers from port in Ports select (reg, port);
-    public static byte[] ImmediateValues { get; } = [.. Enumerable.Range(0, byte.MaxValue).Select(static i => (byte)i)];
+    public static byte[] ImmediateValues { get; } = [.. Enumerable.Range(0, byte.MaxValue + 1).Select(static i => (byte)i)];
     public static (byte a, byte b)[][] ImmediateValuePairChunks { get; } = [.. (from a in ImmediateValues from b in ImmediateValues select (a, b)).Chunk(TestHelper.MaxROM / 8)];
 
     [Test]
     [MethodDataSource(nameof(Registers))]
     public async Task OpLoad(byte reg)
     {
-        byte reg2 = (byte)((reg + 1) % 0xF);
+        byte reg2 = (byte)((reg + 1) % 0x10);
 
         using TestHelper test = new();
         foreach (byte a in ImmediateValues)
@@ -63,7 +63,7 @@ class Tests
             test.SetInput(port, a);
             test.Asm($"INPUT r{reg:X}, {port}");
             test.AssertStall();
-            test.AssertOutputOf(reg, eq: a, port: (byte)((port + 1) % 0xF));
+            test.AssertOutputOf(reg, eq: a, port: (byte)((port + 1) % 0x10));
         }
         await test.Execute();
     }
@@ -364,6 +364,14 @@ class TestHelper : IDisposable
 
                 clock_s <= not clock_s after CLK_PERIOD / 2;
 
+                -- Fail instead of silently passing if the test never reaches `stop`
+                -- (a full 4096-entry ROM needs ~60us)
+                watchdog: process
+                begin
+                    wait for 100 us;
+                    report "Testbench timeout: did not reach end of test" severity failure;
+                end process;
+
                 process
                 begin
                     reset <= '1';
@@ -481,9 +489,9 @@ class TestHelper : IDisposable
         _ctx.OutputWriter.WriteLine("Importing sources");
         await RunAsync("ghdl", ["import", "--std=08", assertWriter.FileName, .. Directory.GetFiles(srcPath, "*.vhd", SearchOption.AllDirectories)]);
         _ctx.OutputWriter.WriteLine("Elaborating Test");
-        await RunAsync("ghdl", ["make", "--std=08", "generated_test"]);
+        await RunAsync("ghdl", ["make", "--std=08", "test_config"]);
         _ctx.OutputWriter.WriteLine("Simulating Test");
-        await RunAsync("ghdl", ["elab-run", "--std=08", "generated_test", "--stop-time=1us", "--assert-level=error"]);
+        await RunAsync("ghdl", ["elab-run", "--std=08", "test_config", "--assert-level=error"]);
     }
 
     public void Dispose()

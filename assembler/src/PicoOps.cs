@@ -18,6 +18,7 @@ internal enum PicoOps : byte
     Output =    /**/ 0b011000,
     Fetch =     /**/ 0b011010,
     Store =     /**/ 0b011100,
+    CompareCarry = /**/ 0b011110,
     // 10 ------------ //
     RL =        /**/ 0b100000,
     RR =        /**/ 0b100010,
@@ -29,6 +30,7 @@ internal enum PicoOps : byte
     SR1 =       /**/ 0b101000,
     SRA =       /**/ 0b101001,
     SRX =       /**/ 0b101010,
+    TestCarry = /**/ 0b101100,
     // 11 ------------ //
     Jump =      /**/ 0b110000,
     Halt =      /**/ 0b111111
