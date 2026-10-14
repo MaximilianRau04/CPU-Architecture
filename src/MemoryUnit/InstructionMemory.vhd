@@ -80,7 +80,6 @@ architecture Behavioral of InstructionMemory is
         9  => Op_Sub_Im(0, 1),       -- counter--
         10 => Op_Jump("ALWAYS", 3),  -- loop
         11 => Op_Jump("ALWAYS", 11), -- halt
-        4095 => "101010111100110011", -- end-of-ROM marker for synthesis boundary
         others => (others => '0')
     );
 

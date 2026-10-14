@@ -59,4 +59,4 @@ After the stall, the execute stage completes its write and the decode stage read
 
 === Flush Behavior
 
-When a branch is taken, the next instruction already in the decode stage needs to be thrown away. The `flush_in` signal clears the execute-stage pipeline registers just like a stall (inserting a bubble), but unlike a stall the PC is not held. Instead, the control unit updates it to the branch target.
+Because fetch and decode happen in the same stage, no instruction after a jump has been fetched when the jump is decoded. A taken jump loads the target into the PC, so the next instruction in decode is already the target and there is no delay slot. The `flush_in` signal clears the execute-stage pipeline registers just like a stall (inserting a bubble), but unlike a stall the PC is not held. The bubble replaces the jump itself, which has no execute-stage effects anyway, so the flush is a safety measure rather than a correctness requirement.

@@ -384,6 +384,12 @@ begin
         drive(mk_jump(OPC_JNC, x"00C"));
         check_ctrl((ALU_NOP,'0','0','0','0','0','0', J_NC, '0','0','0'), "JNC");
 
+        -- Unknown opcodes behave like NOP (no register reads -> no spurious stalls)
+        drive("000001" & x"123");
+        check_ctrl(EXP_NOP, "UNKNOWN 000001");
+        drive("111111" & x"FFF");
+        check_ctrl(EXP_NOP, "UNKNOWN 111111");
+
         report "instruction_decoder_tb: Completed";
         wait;
     end process;

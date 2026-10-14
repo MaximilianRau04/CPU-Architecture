@@ -11,7 +11,6 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
-use work.alu_pkg.all;
 use work.controlunit_pkg.all;
 
 entity branch_logic is

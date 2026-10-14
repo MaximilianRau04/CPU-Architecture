@@ -126,8 +126,8 @@ begin
             '0' when J_NONE,
             '1' when others;
 
-    -- PC actually jumps only when the condition is also met
-    pc_branch_jump <= jump_enable and branch_taken;
+    -- PC jumps when the condition is met (branch_taken is already gated by jump_enable)
+    pc_branch_jump <= branch_taken;
 
     -- Flush the pipeline when a branch is taken (no delay slot)
     flush_out <= pc_branch_jump when stall_in = '0' else '0';

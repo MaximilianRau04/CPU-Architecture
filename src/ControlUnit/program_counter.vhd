@@ -14,9 +14,6 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
-use work.alu_pkg.all;
-use work.controlunit_pkg.all;
-
 entity program_counter is
     Port (
         clk          : in  std_logic;

@@ -358,13 +358,10 @@ begin
                 jump_cond <= J_NC;
                 reads_reg_a <= '0';  reads_reg_b <= '0';
 
-            -- NOP / unknown -- do nothing
-            when OPC_NOP =>
+            -- NOP / unknown -- do nothing, read no registers (no stalls)
+            when others =>
                 alu_op <= ALU_NOP;
                 reads_reg_a <= '0';  reads_reg_b <= '0';
-
-            when others =>
-                null;
         end case;
     end process;
 end rtl;

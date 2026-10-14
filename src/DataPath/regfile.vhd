@@ -15,9 +15,9 @@ use work.common.all;
 
 entity regfile is
     Port(
-        clock_in      : std_logic;
+        clock_in      : in std_logic;
         reset_in      : in std_logic;
-        do_write_in   : std_logic;              -- write enable
+        do_write_in   : in std_logic;           -- write enable
         addr_write_in : in ro2_address;         -- which register to write
         data_in       : in ro2_word;            -- value to write
         addrA_in      : in ro2_address;         -- read port A address

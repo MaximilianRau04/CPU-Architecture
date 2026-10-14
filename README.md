@@ -16,7 +16,7 @@ IO and memory control signals are delayed one cycle so they align with execute-s
 - **18-bit instruction word** -- 6-bit opcode, 4-bit register address, 8-bit immediate/source
 - **12-bit program counter** -- 4096-address instruction space
 - **RAW hazard detection** -- combinational comparator stalls the pipeline when the execute stage writes a register that the decode stage needs to read
-- **Branch flush** -- taken jumps flush the in-flight decode instruction (no delay slot)
+- **No delay slot** -- fetch and decode share a stage, so a taken jump loads the target into the PC and the next instruction is the target; the flush only turns the jump itself into an execute-stage bubble
 - **IO unit** -- 256 input + 256 output ports, directly addressed by INPUT/OUTPUT instructions
 - **Scratchpad RAM** -- 256 x 8-bit, synchronous write, asynchronous read (STORE/FETCH instructions)
 - **ALU operations** -- ADD, ADDCY, SUB, SUBCY, AND, OR, XOR, TEST, TESTCY, shifts (SL0/SL1/SLA/SLX, SR0/SR1/SRA/SRX), rotates (RL/RR), COMPARE, COMPARECY, LOAD
