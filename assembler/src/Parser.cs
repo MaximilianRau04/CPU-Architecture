@@ -83,7 +83,8 @@ internal ref struct Parser<TAstVisitor>(TAstVisitor visitor) : ITokenVisitor whe
             Result = token switch
             {
                 Tokens.Register(var registerNumber) => (isRegister: true, value: registerNumber),
-                Tokens.Number(var numberValue) => (isRegister: false, value: numberValue),
+                Tokens.Number(var numberValue) when numberValue is >= 0 and <= 0xFF => (isRegister: false, value: numberValue),
+                Tokens.Number(var numberValue) => throw new SyntaxError($"Constant {numberValue} does not fit into 8 bits (0..255)") { Offset = tokenizer.Position },
                 _ => throw new SyntaxError($"Expected register or constant, got: {token}") { Offset = tokenizer.Position }
             };
         }

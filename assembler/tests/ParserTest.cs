@@ -90,6 +90,33 @@ public partial class ParserTest
         ]);
     }
 
+    [Test]
+    [Arguments("LOAD r1, 256")]
+    [Arguments("ADD r1, 0x100")]
+    [Arguments("OUTPUT r1, 300")]
+    public async Task ConstantOutOfRange_ShouldThrow(string program)
+    {
+        await Assert.That(() => Parse(program)).Throws<SyntaxError>();
+    }
+
+    [Test]
+    public async Task ConstantAtUpperBound_ShouldParse()
+    {
+        await Assert.That(Parse("LOAD r1, 0xFF")).IsEquivalentTo((List<string?>)[
+            "OpRegConst { OperationId = Load, Destination = Register { Id = 1 }, Value = 255 }",
+        ]);
+    }
+
+    static List<string?> Parse(string program)
+    {
+        List<string?> nodes = [];
+        Tokenizer tokenizer = new(program);
+        Parser<ToStringListVisitor> parser = new(visitor: new(nodes));
+
+        while (tokenizer.MoveNext(ref parser)) ;
+        return nodes;
+    }
+
     static int Fibonacci(int n)
     {
         int current = 1, next = 1;

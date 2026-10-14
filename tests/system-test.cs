@@ -302,11 +302,151 @@ class Tests
         }
     }
 
-    // ToDo: Add test for the following instructions
-    static readonly string[] untestedInstructions = [
-        "COMPARE",
-        "JUMP",
-    ];
+    static readonly byte[] FlagTestValues = [0x00, 0x01, 0x02, 0x03, 0x0F, 0x10, 0x33, 0x55, 0x7E, 0x7F, 0x80, 0x81, 0xAA, 0xCC, 0xFE, 0xFF];
+
+    static IEnumerable<(string instruction, Func<byte, byte, bool, bool, (bool carry, bool zero)> flags)> FlagInstructions()
+    {
+        yield return ("COMPARE", (a, b, c, z) => (a < b, a == b));
+        yield return ("COMPARECY", (a, b, c, z) =>
+        {
+            int result = a - b - (c ? 1 : 0);
+            return (result < 0, (byte)result == 0 && z);
+        });
+        yield return ("TEST", (a, b, c, z) =>
+        {
+            var result = (byte)(a & b);
+            return (byte.PopCount(result) % 2 == 1, result == 0);
+        });
+        yield return ("TESTCY", (a, b, c, z) =>
+        {
+            var result = (byte)(a & b);
+            return ((byte.PopCount(result) % 2 == 1) ^ c, result == 0 && z);
+        });
+    }
+
+    public static IEnumerable<(string instruction, bool immediate, bool jumpIfSet, Func<byte, byte, bool, bool, (bool carry, bool zero)> flags)> FlagInstructionData()
+    {
+        foreach (var (instruction, flags) in FlagInstructions())
+            foreach (var immediate in (bool[])[false, true])
+                foreach (var jumpIfSet in (bool[])[false, true])
+                    yield return (instruction, immediate, jumpIfSet, flags);
+    }
+
+    // Flag-only instructions are observed through conditional jumps:
+    // carry ends up in r2 and zero in r4. jumpIfSet selects JUMP C/Z vs. JUMP NC/NZ.
+    [Test]
+    [MethodDataSource(nameof(FlagInstructionData))]
+    public async Task FlagInstruction(string instruction, bool immediate, bool jumpIfSet, Func<byte, byte, bool, bool, (bool carry, bool zero)> flags)
+    {
+        var cases = from a in FlagTestValues
+                    from b in FlagTestValues
+                    from carryIn in (bool[])[false, true]
+                    from zeroIn in (bool[])[false, true]
+                    select (a, b, carryIn, zeroIn);
+
+        foreach (var chunk in cases.Chunk(TestHelper.MaxROM / 16))
+        {
+            using TestHelper test = new();
+            int label = 0;
+            foreach (var (a, b, carryIn, zeroIn) in chunk)
+            {
+                var (carry, zero) = flags(a, b, carryIn, zeroIn);
+                var message = $"a={a}, b={b}, c_in={carryIn}, z_in={zeroIn}";
+
+                // SR0 on this value sets C = bit 0 and Z = (value >> 1 == 0)
+                test.Asm($"LOAD r6, {(carryIn ? 1 : 0) | (zeroIn ? 0 : 2)}");
+                test.Asm($"LOAD r1, 0x{a:X2}");
+                if (!immediate)
+                    test.Asm($"LOAD r3, 0x{b:X2}");
+                test.Asm("LOAD r2, 0");
+                test.Asm("LOAD r4, 0");
+                test.Asm("SR0 r6");
+
+                test.Asm(immediate ? $"{instruction} r1, 0x{b:X2}" : $"{instruction} r1, r3");
+
+                // Fall-through path loads 1, so r2/r4 hold "jump not taken"
+                bool carryJumpTaken = jumpIfSet ? carry : !carry;
+                test.Asm($"JUMP {(jumpIfSet ? "C" : "NC")} carry{label}");
+                if (carryJumpTaken)
+                    test.Skip("LOAD r2, 1");
+                else
+                    test.Asm("LOAD r2, 1");
+                test.Label($"carry{label}");
+
+                bool zeroJumpTaken = jumpIfSet ? zero : !zero;
+                test.Asm($"JUMP {(jumpIfSet ? "Z" : "NZ")} zero{label}");
+                if (zeroJumpTaken)
+                    test.Skip("LOAD r4, 1");
+                else
+                    test.Asm("LOAD r4, 1");
+                test.Label($"zero{label}");
+
+                test.AssertOutputOf(reg: 2, eq: carryJumpTaken ? 0u : 1u, port: 1, message: $"carry, {message}");
+                test.AssertOutputOf(reg: 4, eq: zeroJumpTaken ? 0u : 1u, port: 2, message: $"zero, {message}");
+                label++;
+            }
+            await test.Execute();
+        }
+    }
+
+    [Test]
+    public async Task OpJump()
+    {
+        using TestHelper test = new();
+        int label = 0;
+        foreach (byte a in ImmediateValues)
+        {
+            // Forward jump, backward jump, forward jump again.
+            // Every skipped LOAD would overwrite r1 with the wrong value.
+            test.Asm($"JUMP forward{label}");
+            test.Skip($"LOAD r1, 0x{(byte)~a:X2}");
+            test.Label($"back{label}");
+            test.Asm($"LOAD r1, 0x{a:X2}");
+            test.Asm($"JUMP done{label}");
+            test.Skip($"LOAD r1, 0x{(byte)~a:X2}");
+            test.Label($"forward{label}");
+            test.Asm($"JUMP back{label}");
+            test.Skip($"LOAD r1, 0x{(byte)~a:X2}");
+            test.Label($"done{label}");
+            test.AssertOutputOf(reg: 1, eq: a);
+            label++;
+        }
+        await test.Execute();
+    }
+
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task OpStoreFetch(bool immediate)
+    {
+        static byte ValueFor(byte address) => (byte)(address ^ 0xA5);
+
+        using TestHelper test = new();
+
+        // Write every address first, then read all of them back,
+        // so a write landing on the wrong address is caught.
+        foreach (byte address in ImmediateValues)
+        {
+            if (!immediate)
+                test.Asm($"LOAD r3, 0x{address:X2}");
+            test.Asm($"LOAD r1, 0x{ValueFor(address):X2}");
+            test.AssertStall();
+            test.Asm(immediate ? $"STORE r1, 0x{address:X2}" : "STORE r1, r3");
+        }
+
+        foreach (byte address in ImmediateValues)
+        {
+            if (!immediate)
+            {
+                test.Asm($"LOAD r3, 0x{address:X2}");
+                test.AssertStall();
+            }
+            test.Asm(immediate ? $"FETCH r2, 0x{address:X2}" : "FETCH r2, r3");
+            test.AssertStall();
+            test.AssertOutputOf(reg: 2, eq: ValueFor(address), message: $"address={address}");
+        }
+        await test.Execute();
+    }
 }
 
 class TestHelper : IDisposable
@@ -387,6 +527,17 @@ class TestHelper : IDisposable
     {
         asmWriter.WriteLine(line);
         assertWriter.WriteLine($"wait until rising_edge(clock_s); -- Wait for {line}");
+    }
+
+    // Instruction that is in the ROM but jumped over, so it takes no cycle
+    public void Skip(string line)
+    {
+        asmWriter.WriteLine(line);
+    }
+
+    public void Label(string name)
+    {
+        asmWriter.WriteLine($"{name}:");
     }
 
     public void AssertStall()

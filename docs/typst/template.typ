@@ -34,12 +34,12 @@
 
   set list(indent: 12pt, marker: (sym.bullet, sym.bullet.stroked))
 
-  set raw(theme: "syntax/GitHub Light.tmTheme")
+  set raw(theme: "../syntax/GitHub Light.tmTheme")
   show raw.where(lang: "asm"): set raw(
-    syntaxes: "syntax/picoasm.yaml",
+    syntaxes: "../syntax/picoasm.yaml",
   )
   show raw.where(lang: "vhdl"): set raw(
-    syntaxes: "syntax/vhdl.yaml",
+    syntaxes: "../syntax/vhdl.yaml",
   )
 
   body
